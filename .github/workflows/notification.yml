@@ -50,7 +50,7 @@ jobs:
             Упавшие джобы:
             ${{ steps.failed_jobs.outputs.failed }}
 
-      - if: env.WORKFLOW_CONCLUSION == 'success'
+      - if: "env.WORKFLOW_CONCLUSION == 'success' && ! startsWith(github.ref, 'refs/pull/') && ! github.event_name == 'workflow_dispatch'"
         name: Success notify
         uses: mattermost/action-mattermost-notify@master
         with:
