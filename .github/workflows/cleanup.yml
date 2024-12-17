@@ -21,7 +21,7 @@ on:
       githubToken:
         required: true
 
-  defaults:
+defaults:
   run:
     shell: bash
 
