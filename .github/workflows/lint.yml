@@ -17,10 +17,6 @@ on:
       packages:
         description: "packages to install"
         type: string
-      install-packages:
-        description: "flag to enable/disable packages installation"
-        type: string
-        default: "false"
 
 env:
   DEBIAN_FRONTEND: "noninteractive"
@@ -52,7 +48,7 @@ jobs:
         directory: ${{ fromJson(inputs.go-version-file-dir) }}
     steps:
       - name: Install build dependencies
-        if: inputs.install-packages == 'true'
+        if: inputs.packages && inputs.packages != ''
         run: |
           sudo apt-get update
           sudo apt-get install -y ${{ inputs.packages }}
