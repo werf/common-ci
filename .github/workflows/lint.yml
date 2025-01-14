@@ -13,7 +13,7 @@ on:
       go-version-file-dir:
         description: "directory where go.mod is located. Can be multiple dirs"
         type: string
-        default: ${{ github.workspace }}
+        default: '["${{ github.workspace }}"]'
       packages:
         description: "packages to install"
         type: string
