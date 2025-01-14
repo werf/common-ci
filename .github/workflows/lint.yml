@@ -2,6 +2,28 @@ name: Lint
 
 on:
   workflow_call:
+    inputs:
+      forceSkip:
+        default: "false"
+        type: string
+      taskfile-dir:
+        description: "directory where taskfile is located"
+        type: string
+        default: ${{ github.workspace }}
+      go-version-file-dir:
+        description: "directory where go.mod is located. Can be multiple dirs"
+        type: string
+        default: ${{ github.workspace }}
+      packages:
+        description: "packages to install"
+        type: string
+      install-packages:
+        description: "flag to enable/disable packages installation"
+        type: string
+        default: "false"
+
+env:
+  DEBIAN_FRONTEND: "noninteractive"
 
 jobs:
   prettier:
@@ -21,3 +43,36 @@ jobs:
 
       - name: Lint
         run: task -p lint:prettier
+
+  golangci-lint:
+    timeout-minutes: 7
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        directory: ${{ fromJson(inputs.go-version-file-dir) }}
+    steps:
+      - name: Install build dependencies
+        if: inputs.install-packages == true
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ inputs.packages }}
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ matrix.directory }}/go.mod
+
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install golangci-lint
+        run: task -p deps:install:golangci-lint
+
+      - name: Lint
+        working-directory: ${{ matrix.directory }}
+        run: task -p lint:golangci-lint
