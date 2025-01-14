@@ -76,3 +76,5 @@ jobs:
       - name: Lint
         working-directory: ${{ matrix.directory }}
         run: task -p lint:golangci-lint
+        env:
+          GITHUB_WORKSPACE: ${{ github.workspace }}
