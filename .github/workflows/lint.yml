@@ -3,7 +3,7 @@ name: Lint
 on:
   workflow_call:
     inputs:
-      forceSkip:
+      force-skip:
         default: "false"
         type: string
       taskfile-dir:
