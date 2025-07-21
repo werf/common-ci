@@ -44,10 +44,10 @@ jobs:
           VERSION="${{ steps.get_version.outputs.version }}"
           BINARY_NAMES=(${{ inputs.binary_name }})
           PGP_KEY_URLS=(${{ inputs.pgp_key_urls }})
-          TUF_REPO="${{ inputs.tuf_repo }}"
+          TUF_REPOS="${{ inputs.tuf_repo }}"
           
-          if [ ${#BINARY_NAMES[@]} -ne ${#PGP_KEY_URLS[@]} ]; then
-            echo "Error: Number of binaries (${#BINARY_NAMES[@]}) doesn't match number of PGP keys (${#PGP_KEY_URLS[@]})"
+          if [ ${#BINARY_NAMES[@]} -ne ${#PGP_KEY_URLS[@]} ] || [ ${#BINARY_NAMES[@]} -ne ${#TUF_REPOS[@]} ]; then
+            echo "Error: Number of binaries (${#BINARY_NAMES[@]}), PGP keys (${#PGP_KEY_URLS[@]}) and TUF repos (${#TUF_REPOS[@]}) must match"
             exit 1
           fi
           
@@ -62,6 +62,7 @@ jobs:
           for i in "${!BINARY_NAMES[@]}"; do
             BINARY_NAME="${BINARY_NAMES[i]}"
             PGP_URL="${PGP_KEY_URLS[i]}"
+            TUF_REPO="${TUF_REPOS[i]}"
             
             cat <<EOF >> notes.md
           You can download \`$BINARY_NAME\` binaries from here:
