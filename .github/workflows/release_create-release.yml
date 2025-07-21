@@ -63,7 +63,11 @@ jobs:
             BINARY_NAME="${BINARY_NAMES[i]}"
             PGP_URL="${PGP_KEY_URLS[i]}"
             TUF_REPO="${TUF_REPOS[i]}"
-            
+
+            if [[ "$BINARY_NAME" == "werf" ]]; then
+              echo -e "\nTo install \`werf\` we strongly recommend following [these instructions](https://werf.io/getting_started/).\n" >> notes.md
+            fi
+
             cat <<EOF >> notes.md
           You can download \`$BINARY_NAME\` binaries from here:
           * [Linux amd64](https://$TUF_REPO/targets/releases/$VERSION/linux-amd64/bin/$BINARY_NAME) ([PGP signature](https://$TUF_REPO/targets/signatures/$VERSION/linux-amd64/bin/$BINARY_NAME.sig))
