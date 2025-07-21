@@ -44,7 +44,7 @@ jobs:
           VERSION="${{ steps.get_version.outputs.version }}"
           BINARY_NAMES=(${{ inputs.binary_name }})
           PGP_KEY_URLS=(${{ inputs.pgp_key_urls }})
-          TUF_REPOS="${{ inputs.tuf_repo }}"
+          TUF_REPOS=(${{ inputs.tuf_repo }})
           
           if [ ${#BINARY_NAMES[@]} -ne ${#PGP_KEY_URLS[@]} ] || [ ${#BINARY_NAMES[@]} -ne ${#TUF_REPOS[@]} ]; then
             echo "Error: Number of binaries (${#BINARY_NAMES[@]}), PGP keys (${#PGP_KEY_URLS[@]}) and TUF repos (${#TUF_REPOS[@]}) must match"
