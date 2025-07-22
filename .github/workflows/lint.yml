@@ -6,11 +6,18 @@ on:
       path-to-go-mod:
         type: string
         default: "go.mod"
+      skipBtrfs:
+        type: string
+        default: "true"
 
 jobs:
   lint:
     runs-on: ubuntu-22.04
     steps:
+    - name: Install Btrfs
+      if: inputs.skipBtrfs == 'false'
+      run: sudo apt-get install -y libbtrfs-dev
+
     - name: Checkout code
       uses: actions/checkout@v4
 
