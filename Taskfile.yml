@@ -17,7 +17,7 @@ tasks:
   format:gci:
     desc: 'Format code with gci. Important vars: "paths".'
     cmds:
-      - gci write -s Standard -s Default -s 'Prefix({{slice (splitList "/" .package) 0 2 | join "/"}})' {{.CLI_ARGS}} {{.paths | default "pkg/ cmd/ test/ integration/"}}
+      - gci write -s Standard -s Default -s 'Prefix(github.com/werf/)' {{.CLI_ARGS}} {{.paths | default "pkg/ cmd/ test/ integration/"}}
 
   format:gofumpt:
     desc: 'Format code with gofumpt. Important vars: "paths".'
@@ -43,14 +43,14 @@ tasks:
   lint:golangci-lint:cgo:
     desc: 'Lint with golangci-lint for cgo. Important vars: "paths".'
     cmds:
-      - golangci-lint run --build-tags="{{.cgoTags}}" {{.CLI_ARGS}} {{.paths | default "./..."}}
+      - golangci-lint run --build-tags="{{.cgoTags}}" -c <(curl https://raw.githubusercontent.com/werf/common-ci/refs/heads/chore/lint/add-golangci-lint-config/.golangci.yml) {{.CLI_ARGS}} {{.paths | default "./..."}}
     env:
       CGO_ENABLED: "1"
 
   lint:golangci-lint:go:
     desc: 'Lint with golangci-lint without cgo. Important vars: "paths".'
     cmds:
-      - golangci-lint run --build-tags="{{.goTags}}" {{.CLI_ARGS}} {{.paths | default "./..."}}
+      - golangci-lint run --build-tags="{{.goTags}}" -c <(curl https://raw.githubusercontent.com/werf/common-ci/refs/heads/chore/lint/add-golangci-lint-config/.golangci.yml) {{.CLI_ARGS}} {{.paths | default "./..."}}
     env:
       CGO_ENABLED: "0"
 
