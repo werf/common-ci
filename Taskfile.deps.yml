@@ -1,0 +1,49 @@
+version: "3"
+
+silent: true
+
+tasks:
+  deps:install:
+    desc: "Install all dependencies"
+    deps:
+      - deps:install:gci
+      - deps:install:ginkgo
+      - deps:install:golangci-lint
+      - deps:install:gofumpt
+      - deps:install:c
+
+  deps:install:gci:
+    desc: "Install gci binary."
+    cmds:
+      - go install github.com/daixiang0/gci@v0.13.5
+
+  deps:install:ginkgo:
+    desc: "Install ginkgo binary."
+    cmds:
+      - |
+        version="$(go list -m -f '{{ printf `{{ .Version }}` }}' github.com/onsi/ginkgo/v2)"
+        go install {{.CLI_ARGS}} github.com/onsi/ginkgo/v2/ginkgo@${version}
+
+  deps:install:golangci-lint:
+    desc: "Install golangci-lint binary."
+    cmds:
+      - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin {{.golangcilintVersion | default "v1.57.1"}}
+
+  deps:install:gofumpt:
+    desc: "Install gofumpt binary."
+    cmds:
+      - go install mvdan.cc/gofumpt@v0.7.0
+
+  deps:install:c:
+    desc: "Install c libraries."
+    cmds:
+      - git submodule update --init --recursive c/vendor/libelf
+      - |
+        if command -v apt-get >/dev/null 2>&1; then
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get -y update
+          sudo apt-get install -y build-essential libuv1-dev libzstd-dev zlib1g-dev libssl-dev cmake
+        else
+          echo "Can't install C dependencies automatically, do it manually."
+          exit 1
+        fi
