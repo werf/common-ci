@@ -10,7 +10,6 @@ tasks:
       - deps:install:ginkgo
       - deps:install:golangci-lint
       - deps:install:gofumpt
-      - deps:install:c
 
   deps:install:gci:
     desc: "Install gci binary."
