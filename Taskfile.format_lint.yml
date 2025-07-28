@@ -31,7 +31,7 @@ tasks:
   format:prettier:yaml:
     desc: "Format yaml files with prettier."
     cmds:
-      - docker run --rm -v $(pwd):/work tmknom/prettier:${PRETTIER_VERSION} -w "**/*.yaml" "**/*.yml"
+      - docker run --rm -v $(pwd):/work tmknom/prettier:${PRETTIER_VERSION} -w --no-error-on-unmatched-pattern "**/*.yaml" "**/*.yml"
 
   lint:
     desc: 'Run all linters in parallel. Important vars: "paths".'
@@ -83,4 +83,4 @@ tasks:
   lint:prettier:yaml:
     desc: "Check if yaml files are prettier-formatted."
     cmds:
-      - docker run --rm -v $(pwd):/work tmknom/prettier:${PRETTIER_VERSION} -c "**/*.yaml" "**/*.yml"
+      - docker run --rm -v $(pwd):/work tmknom/prettier:${PRETTIER_VERSION} --no-error-on-unmatched-pattern -c "**/*.yaml" "**/*.yml"
