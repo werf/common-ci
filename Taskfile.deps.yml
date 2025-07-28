@@ -17,9 +17,10 @@ tasks:
       - go install github.com/daixiang0/gci@v0.13.5
 
   deps:install:ginkgo:
-    desc: "Install ginkgo binary."
+    desc: 'Install ginkgo binary. Important vars: "paths".'
     cmds:
       - |
+        cd {{.paths | default "./"}}
         version="$(go list -m -f '{{ printf `{{ .Version }}` }}' github.com/onsi/ginkgo/v2)"
         go install {{.CLI_ARGS}} github.com/onsi/ginkgo/v2/ginkgo@${version}
 
