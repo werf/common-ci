@@ -1,0 +1,86 @@
+version: "3"
+
+silent: true
+
+env:
+  PRETTIER_VERSION: "3.5.3"
+
+tasks:
+  format:
+    desc: 'Run all code formatters. Important vars: "paths".'
+    cmds:
+      - task: format:gci
+      - task: format:gofumpt
+      - task: format:prettier
+
+  format:gci:
+    desc: 'Format code with gci. Important vars: "paths".'
+    cmds:
+      - gci write -s Standard -s Default -s 'Prefix(github.com/werf/)' {{.CLI_ARGS}} {{.paths | default "pkg/ cmd/ test/ integration/"}}
+
+  format:gofumpt:
+    desc: 'Format code with gofumpt. Important vars: "paths".'
+    cmds:
+      - gofumpt -extra -w {{.CLI_ARGS}} {{.paths | default "cmd/ pkg/ test/ integration/"}}
+
+  format:prettier:
+    desc: "Format with prettier."
+    deps:
+      - format:prettier:yaml
+
+  format:prettier:yaml:
+    desc: "Format yaml files with prettier."
+    cmds:
+      - docker run --rm -v $(pwd):/work tmknom/prettier:${PRETTIER_VERSION} -w --no-error-on-unmatched-pattern "**/*.yaml" "**/*.yml"
+
+  lint:
+    desc: 'Run all linters in parallel. Important vars: "paths".'
+    deps:
+      - lint:golangci-lint
+      - lint:prettier
+
+  lint:golangci-lint:cgo:
+    desc: 'Lint with golangci-lint for cgo. Important vars: "paths".'
+    cmds:
+      - golangci-lint run --build-tags="{{.cgoTags}}" -c <(curl https://raw.githubusercontent.com/werf/common-ci/refs/heads/main/.golangci.yml) {{.CLI_ARGS}} {{.paths | default "./..."}}
+    env:
+      CGO_ENABLED: "1"
+
+  lint:golangci-lint:go:
+    desc: 'Lint with golangci-lint without cgo. Important vars: "paths".'
+    cmds:
+      - golangci-lint run --build-tags="{{.goTags}}" -c <(curl https://raw.githubusercontent.com/werf/common-ci/refs/heads/main/.golangci.yml) {{.CLI_ARGS}} {{.paths | default "./..."}}
+    env:
+      CGO_ENABLED: "0"
+
+  _lint:golangci-lint:cgo-and-go:
+    cmds:
+      - task: lint:golangci-lint:cgo
+        vars:
+          paths: "{{.paths}}"
+      - task: lint:golangci-lint:go
+        vars:
+          paths: "{{.paths}}"
+
+  _lint:golangci-lint:go:
+    deps:
+      - task: lint:golangci-lint:go
+        vars:
+          paths: "{{.paths}}"
+
+  lint:golangci-lint:
+    desc: 'Lint with golangci-lint (with and without cgo). Important vars: "paths".'
+    deps:
+      - task: _lint:golangci-lint:{{ternary "cgo-and-go" "go" (eq .mode "cgo")}}
+        vars:
+          paths: "{{.paths}}"
+
+  lint:prettier:
+    desc: "Check if prettier-formatted."
+    deps:
+      - lint:prettier:yaml
+
+  lint:prettier:yaml:
+    desc: "Check if yaml files are prettier-formatted."
+    cmds:
+      - docker run --rm -v $(pwd):/work tmknom/prettier:${PRETTIER_VERSION} --no-error-on-unmatched-pattern -c "**/*.yaml" "**/*.yml"
