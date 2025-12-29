@@ -21,7 +21,7 @@ tasks:
   format:gofumpt:
     desc: 'Format code with gofumpt. Important vars: "paths".'
     cmds:
-      - gofumpt -extra -w {{.CLI_ARGS}} {{.paths | default "cmd/ pkg/ test/ "}}
+      - gofumpt -extra -w {{.CLI_ARGS}} {{.paths | default "cmd/ pkg/ test/"}}
 
   format:prettier:
     desc: "Format with prettier."
