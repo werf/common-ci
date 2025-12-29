@@ -16,12 +16,12 @@ tasks:
   format:gci:
     desc: 'Format code with gci. Important vars: "paths".'
     cmds:
-      - gci write -s Standard -s Default -s 'Prefix(github.com/werf/)' {{.CLI_ARGS}} {{.paths | default "pkg/ cmd/ test/ integration/"}}
+      - gci write -s Standard -s Default -s 'Prefix(github.com/werf/)' {{.CLI_ARGS}} {{.paths | default "pkg/ cmd/ test/"}}
 
   format:gofumpt:
     desc: 'Format code with gofumpt. Important vars: "paths".'
     cmds:
-      - gofumpt -extra -w {{.CLI_ARGS}} {{.paths | default "cmd/ pkg/ test/ integration/"}}
+      - gofumpt -extra -w {{.CLI_ARGS}} {{.paths | default "cmd/ pkg/ test/ "}}
 
   format:prettier:
     desc: "Format with prettier."
