@@ -22,7 +22,6 @@ linters:
   disable-all: true
   enable:
     - ineffassign
-    - typecheck
     - unused
     - asciicheck
     - bidichk
