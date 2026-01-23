@@ -42,14 +42,14 @@ tasks:
   lint:golangci-lint:cgo:
     desc: 'Lint with golangci-lint for cgo. Important vars: "golangciPaths".'
     cmds:
-      - golangci-lint run --build-tags="{{.cgoTags}}" -c <(curl https://raw.githubusercontent.com/werf/common-ci/refs/heads/main/.golangci.yml) {{.CLI_ARGS}} {{.golangciPaths | default "./..."}}
+      - golangci-lint run --build-tags="{{.cgoTags}}" -c <(curl https://raw.githubusercontent.com/werf/common-ci/refs/heads/main/.golangci.yml) {{.CLI_ARGS}} {{.golangciPaths | default "./cmd/... ./pkg/... ./test/... ./integration/..."}}
     env:
       CGO_ENABLED: "1"
 
   lint:golangci-lint:go:
     desc: 'Lint with golangci-lint without cgo. Important vars: "golangciPaths".'
     cmds:
-      - golangci-lint run --build-tags="{{.goTags}}" -c <(curl https://raw.githubusercontent.com/werf/common-ci/refs/heads/main/.golangci.yml) {{.CLI_ARGS}} {{.golangciPaths | default "./..."}}
+      - golangci-lint run --build-tags="{{.goTags}}" -c <(curl https://raw.githubusercontent.com/werf/common-ci/refs/heads/main/.golangci.yml) {{.CLI_ARGS}} {{.golangciPaths | default "./cmd/... ./pkg/... ./test/... ./integration/..."}}
     env:
       CGO_ENABLED: "0"
 
