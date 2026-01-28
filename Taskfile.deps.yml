@@ -28,7 +28,9 @@ tasks:
     desc: "Install golangci-lint binary to bin/golangci-lint-<version>."
     cmds:
       - |
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ./bin {{.golangciLintVersion | default "v1.62.0"}} 
+        set -o pipefail
+        mkdir -p ./bin
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ./bin {{.golangciLintVersion | default "v1.62.0"}}
         mv bin/golangci-lint bin/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}}
 
   deps:install:gofumpt:

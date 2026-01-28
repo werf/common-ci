@@ -14,13 +14,10 @@ linters:
     - asciicheck
     - bidichk
     - bodyclose
+    - copyloopvar
+    - embeddedstructfieldcheck
     - errname
     - errorlint
-    - copyloopvar
-    - gocritic
-    - misspell
-    - nolintlint
-    - embeddedstructfieldcheck
     - exptostd
     - funcorder
     - ginkgolinter
@@ -30,7 +27,6 @@ linters:
     - godox
     - gosec
     - gosmopolitan
-    - govet
     - grouper
     - iface
     - makezero
@@ -39,6 +35,7 @@ linters:
     - musttag
     - nilnesserr
     - nilnil
+    - nolintlint
     - predeclared
     - tagliatelle
     - testifylint
@@ -47,8 +44,8 @@ linters:
     - usestdlibvars
     - usetesting
     - wastedassign
-    - wsl_v5
     - wrapcheck
+    - wsl_v5
 
     # Enable eventually.
     # - err113
