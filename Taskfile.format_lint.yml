@@ -47,7 +47,7 @@ tasks:
           echo "golangci-lint not installed, run: task deps:install:golangci-lint"
           exit 1
         fi
-        ./bin/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}} run --build-tags="{{.cgoTags}}" -c <(curl -sSfL https://raw.githubusercontent.com/werf/common-ci/refs/heads/chore/golangci-lint-update/{{.golangciConfig | default ".golangci_simple.yml"}}) {{.CLI_ARGS}} {{.golangciPaths | default "./..."}}
+        ./bin/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}} run --build-tags="{{.cgoTags}}" -c <(curl -sSfL https://raw.githubusercontent.com/werf/common-ci/refs/heads/main/{{.golangciConfig | default ".golangci_simple.yml"}}) {{.CLI_ARGS}} {{.golangciPaths | default "./..."}}
     env:
       CGO_ENABLED: "1"
 
@@ -59,7 +59,7 @@ tasks:
           echo "golangci-lint not installed, run: task deps:install:golangci-lint"
           exit 1
         fi
-        ./bin/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}} run --build-tags="{{.goTags}}" -c <(curl -sSfL https://raw.githubusercontent.com/werf/common-ci/refs/heads/chore/golangci-lint-update/{{.golangciConfig | default ".golangci_simple.yml"}}) {{.CLI_ARGS}} {{.golangciPaths | default "./..."}}
+        ./bin/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}} run --build-tags="{{.goTags}}" -c <(curl -sSfL https://raw.githubusercontent.com/werf/common-ci/refs/heads/main/{{.golangciConfig | default ".golangci_simple.yml"}}) {{.CLI_ARGS}} {{.golangciPaths | default "./..."}}
     env:
       CGO_ENABLED: "0"
 
