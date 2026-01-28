@@ -1,0 +1,133 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    # Default linters.
+    - ineffassign
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+
+    # Extra linters.
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - copyloopvar
+    - embeddedstructfieldcheck
+    - errname
+    - errorlint
+    - exptostd
+    - funcorder
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gochecksumtype
+    - gocritic
+    - godox
+    - gosec
+    - gosmopolitan
+    - grouper
+    - iface
+    - makezero
+    - mirror
+    - misspell
+    - musttag
+    - nilnesserr
+    - nilnil
+    - nolintlint
+    - predeclared
+    - tagliatelle
+    - testifylint
+    - testpackage
+    - unconvert
+    - usestdlibvars
+    - usetesting
+    - wastedassign
+    - wrapcheck
+    - wsl_v5
+
+    # Enable eventually.
+    # - err113
+  settings:
+    errorlint:
+      asserts: false
+      comparison: false
+    gocritic:
+      disabled-checks:
+        - ifElseChain
+        - unlambda
+    misspell:
+      locale: US
+    staticcheck:
+      checks:
+        - all
+        - -S1016
+        - -SA1019
+        - -QF1008
+    govet:
+      disable:
+        - lostcancel
+    godox:
+      keywords:
+        - FIXME
+    gosec:
+      excludes:
+        - G306
+    wsl_v5:
+      allow-whole-block: true
+    wrapcheck:
+      extra-ignore-sigs:
+        - context.Cause(
+        - (*github.com/werf/nelm/internal/util.MultiError).OrNilIfNoErrs(
+    errcheck:
+      exclude-functions:
+        - (*github.com/werf/nelm/internal/util.MultiError).Add
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - scripts
+      - docs
+      - third_party$
+      - builtin$
+      - examples$
+      - pkg/legacy
+      - internal/legacy
+      - pkg/action/release_uninstall_legacy.go$
+    rules:
+      - path: '.+/log/.+\.go'
+        linters:
+          - wrapcheck
+      - path: '.+/fake/.+\.go'
+        linters:
+          - wrapcheck
+
+formatters:
+  enable:
+    - gci
+    - gofumpt
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/werf/)
+    gofumpt:
+      extra-rules: true
+  exclusions:
+    generated: lax
+    paths:
+      - scripts
+      - docs
+      - third_party$
+      - builtin$
+      - examples$
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
