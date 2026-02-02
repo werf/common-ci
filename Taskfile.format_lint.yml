@@ -12,11 +12,28 @@ tasks:
       - task: format:gci
       - task: format:gofumpt
       - task: format:prettier
+      - task: format:golangci-lint
 
   format:gci:
     desc: 'Format code with gci. Important vars: "paths".'
     cmds:
-      - gci write -s Standard -s Default -s 'Prefix(github.com/werf/)' {{.CLI_ARGS}} {{.paths | default "pkg/ cmd/ test/"}}
+      - gci write -s Standard -s Default -s 'Prefix({{.gciPrefix | default "github.com/werf/"}})' {{.CLI_ARGS}} {{.paths | default "pkg/ cmd/ test/"}}
+
+  format:golangci-lint:
+    desc: 'Format with golangci-lint --fix (optional, enable via enableGolangciLintFormat="true"). Important vars: "golangciPaths", "golangciLintVersion".'
+    cmds:
+      - |
+        if [ "{{.enableGolangciLintFormat}}" != "true" ]; then
+          echo "Skipping format:golangci-lint (enableGolangciLintFormat != true)"
+          exit 0
+        fi
+        if [ ! -f "./bin/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}}" ]; then
+          echo "golangci-lint not installed, run: task deps:install:golangci-lint"
+          exit 1
+        fi
+        ./bin/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}} run --fix -c <(curl -sSfL https://raw.githubusercontent.com/werf/common-ci/refs/heads/main/{{.golangciConfig | default ".golangci_simple.yml"}}) {{.CLI_ARGS}} {{.golangciPaths | default "./..."}}
+    env:
+      CGO_ENABLED: "0"
 
   format:gofumpt:
     desc: 'Format code with gofumpt. Important vars: "paths".'
