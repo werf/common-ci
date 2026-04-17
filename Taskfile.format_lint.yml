@@ -43,11 +43,11 @@ tasks:
     desc: 'Lint with golangci-lint for cgo. Important vars: "golangciPaths", "golangciLintVersion".'
     cmds:
       - |
-        if [ ! -f "./bin/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}}" ]; then
+        if [ ! -f "{{.golangciLintBinDir | default "./bin"}}/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}}" ]; then
           echo "golangci-lint not installed, run: task deps:install:golangci-lint"
           exit 1
         fi
-        ./bin/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}} run --build-tags="{{.cgoTags}}" -c <(curl -sSfL https://raw.githubusercontent.com/werf/common-ci/refs/heads/main/{{.golangciConfig | default ".golangci_simple.yml"}}) {{.CLI_ARGS}} {{.golangciPaths | default "./..."}}
+        {{.golangciLintBinDir | default "./bin"}}/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}} run --build-tags="{{.cgoTags}}" -c <(curl -sSfL https://raw.githubusercontent.com/werf/common-ci/refs/heads/main/{{.golangciConfig | default ".golangci_simple.yml"}}) {{.CLI_ARGS}} {{.golangciPaths | default "./..."}}
     env:
       CGO_ENABLED: "1"
 
@@ -55,11 +55,11 @@ tasks:
     desc: 'Lint with golangci-lint without cgo. Important vars: "golangciPaths", "golangciLintVersion".'
     cmds:
       - |
-        if [ ! -f "./bin/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}}" ]; then
+        if [ ! -f "{{.golangciLintBinDir | default "./bin"}}/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}}" ]; then
           echo "golangci-lint not installed, run: task deps:install:golangci-lint"
           exit 1
         fi
-        ./bin/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}} run --build-tags="{{.goTags}}" -c <(curl -sSfL https://raw.githubusercontent.com/werf/common-ci/refs/heads/main/{{.golangciConfig | default ".golangci_simple.yml"}}) {{.CLI_ARGS}} {{.golangciPaths | default "./..."}}
+        {{.golangciLintBinDir | default "./bin"}}/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}} run --build-tags="{{.goTags}}" -c <(curl -sSfL https://raw.githubusercontent.com/werf/common-ci/refs/heads/main/{{.golangciConfig | default ".golangci_simple.yml"}}) {{.CLI_ARGS}} {{.golangciPaths | default "./..."}}
     env:
       CGO_ENABLED: "0"
 
