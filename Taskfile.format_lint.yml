@@ -2,21 +2,18 @@ version: "3"
 
 silent: true
 
-env:
-  PRETTIER_VERSION: "3.5.3"
-
 tasks:
   format:
-    desc: 'Run all code formatters. Important vars: "paths".'
+    desc: 'Run all code formatters. Important vars: "paths", "gciPrefix", "prettierPattern", "prettierImage", "prettierVersion".'
     cmds:
       - task: format:gci
       - task: format:gofumpt
       - task: format:prettier
 
   format:gci:
-    desc: 'Format code with gci. Important vars: "paths".'
+    desc: 'Format code with gci. Important vars: "paths", "gciPrefix".'
     cmds:
-      - gci write -s Standard -s Default -s 'Prefix(github.com/werf/)' --skip-generated {{.CLI_ARGS}} {{.paths | default "pkg/ cmd/ test/"}}
+      - gci write -s Standard -s Default -s 'Prefix({{.gciPrefix | default "github.com/werf/"}})' --skip-generated {{.CLI_ARGS}} {{.paths | default "pkg/ cmd/ test/"}}
 
   format:gofumpt:
     desc: 'Format code with gofumpt. Important vars: "paths".'
@@ -24,73 +21,111 @@ tasks:
       - gofumpt -extra -w {{.CLI_ARGS}} {{.paths | default "cmd/ pkg/ test/"}}
 
   format:prettier:
-    desc: "Format with prettier."
+    desc: 'Format with prettier. Important vars: "prettierPattern", "prettierImage", "prettierVersion".'
     deps:
       - format:prettier:yaml
 
-  format:prettier:yaml:
-    desc: "Format yaml files with prettier."
+  _prettier:run:
+    internal: true
     cmds:
-      - docker run --rm -u "$(id -u):$(id -g)" -v $(pwd):/work tmknom/prettier:${PRETTIER_VERSION} -w --no-error-on-unmatched-pattern "**/*.yaml" "**/*.yml"
+      - docker run --rm -u "$(id -u):$(id -g)" -v "$(pwd):/work" {{.prettierImage | default "tmknom/prettier"}}:{{.prettierVersion | default "3.5.3"}} {{.args}}
+
+  format:prettier:yaml:
+    desc: 'Format yaml files with prettier. Important vars: "prettierPattern", "prettierImage", "prettierVersion".'
+    cmds:
+      - task: _prettier:run
+        vars:
+          args: '-w --no-error-on-unmatched-pattern {{.prettierPattern | default "\"**/*.{yaml,yml}\""}}'
 
   lint:
-    desc: 'Run all linters in parallel. Important vars: "paths".'
+    desc: 'Run all linters in parallel. Important vars: "golangciPaths", "golangciConfig", "moduleDir", "prettierPattern", "prettierImage", "prettierVersion".'
     deps:
       - lint:golangci-lint
       - lint:prettier
 
-  lint:golangci-lint:cgo:
-    desc: 'Lint with golangci-lint for cgo. Important vars: "golangciPaths", "golangciLintVersion".'
+  _lint:golangci-lint:run:
+    internal: true
     cmds:
       - |
-        if [ ! -f "{{.golangciLintBinDir | default "./bin"}}/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}}" ]; then
+        bash <<'BASH'
+        project_root="$(pwd)"
+        module_dir="{{.moduleDir | default "."}}"
+        golangci_lint_bin_dir="{{.golangciLintBinDir | default "./bin"}}"
+        golangci_config="{{.golangciConfig | default "https://raw.githubusercontent.com/werf/common-ci/refs/heads/main/.golangci_simple.yml"}}"
+
+        if [ "${module_dir#/}" = "$module_dir" ]; then
+          module_dir="$project_root/$module_dir"
+        fi
+
+        if [ "${golangci_lint_bin_dir#/}" = "$golangci_lint_bin_dir" ]; then
+          golangci_lint_bin_dir="$project_root/$golangci_lint_bin_dir"
+        fi
+
+        golangci_lint_bin="$golangci_lint_bin_dir/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}}"
+
+        cd "$module_dir"
+
+        if [ ! -f "$golangci_lint_bin" ]; then
           echo "golangci-lint not installed, run: task deps:install:golangci-lint"
           exit 1
         fi
-        "{{.golangciLintBinDir | default "./bin"}}/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}}" run --build-tags="{{.cgoTags}}" -c <(curl -sSfL "https://raw.githubusercontent.com/werf/common-ci/refs/heads/main/{{.golangciConfig | default ".golangci_simple.yml"}}") {{.CLI_ARGS}} {{.golangciPaths | default "./..."}}
+
+        run_golangci_lint() {
+          "$golangci_lint_bin" run {{if .buildTags}}--build-tags="{{.buildTags}}" {{end}}-c "$1" {{.CLI_ARGS}} {{.golangciPaths | default "./..."}}
+        }
+
+        if [ "${golangci_config#https://}" != "$golangci_config" ]; then
+          run_golangci_lint <(curl -sSfL "$golangci_config")
+        else
+          if [ ! -f "$golangci_config" ]; then
+            echo "golangci-lint config not found: $golangci_config"
+            exit 1
+          fi
+
+          run_golangci_lint "$golangci_config"
+        fi
+        BASH
     env:
-      CGO_ENABLED: "1"
+      CGO_ENABLED: '{{.cgoEnabled}}'
+
+  lint:golangci-lint:cgo:
+    desc: 'Lint with golangci-lint for cgo. Important vars: "golangciPaths", "golangciLintVersion", "golangciConfig", "moduleDir".'
+    cmds:
+      - task: _lint:golangci-lint:run
+        vars:
+          buildTags: '{{.cgoTags | default ""}}'
+          cgoEnabled: '1'
 
   lint:golangci-lint:go:
-    desc: 'Lint with golangci-lint without cgo. Important vars: "golangciPaths", "golangciLintVersion".'
+    desc: 'Lint with golangci-lint without cgo. Important vars: "golangciPaths", "golangciLintVersion", "golangciConfig", "moduleDir".'
     cmds:
-      - |
-        if [ ! -f "{{.golangciLintBinDir | default "./bin"}}/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}}" ]; then
-          echo "golangci-lint not installed, run: task deps:install:golangci-lint"
-          exit 1
-        fi
-        "{{.golangciLintBinDir | default "./bin"}}/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}}" run --build-tags="{{.goTags}}" -c <(curl -sSfL "https://raw.githubusercontent.com/werf/common-ci/refs/heads/main/{{.golangciConfig | default ".golangci_simple.yml"}}") {{.CLI_ARGS}} {{.golangciPaths | default "./..."}}
-    env:
-      CGO_ENABLED: "0"
+      - task: _lint:golangci-lint:run
+        vars:
+          buildTags: '{{.goTags | default ""}}'
+          cgoEnabled: '0'
 
   _lint:golangci-lint:cgo-and-go:
     cmds:
       - task: lint:golangci-lint:cgo
-        vars:
-          golangciPaths: "{{.golangciPaths}}"
       - task: lint:golangci-lint:go
-        vars:
-          golangciPaths: "{{.golangciPaths}}"
 
   _lint:golangci-lint:go:
     deps:
       - task: lint:golangci-lint:go
-        vars:
-          golangciPaths: "{{.golangciPaths}}"
 
   lint:golangci-lint:
-    desc: 'Lint with golangci-lint (with and without cgo). Important vars: "golangciPaths".'
-    deps:
-      - task: _lint:golangci-lint:{{ternary "cgo-and-go" "go" (eq .mode "cgo")}}
-        vars:
-          golangciPaths: "{{.golangciPaths}}"
+    desc: 'Lint with golangci-lint (with and without cgo). Important vars: "golangciPaths", "golangciConfig", "moduleDir".'
+    cmds:
+      - task: '{{ternary "_lint:golangci-lint:cgo-and-go" "lint:golangci-lint:go" (eq .mode "cgo")}}'
 
   lint:prettier:
-    desc: "Check if prettier-formatted."
+    desc: 'Check if prettier-formatted. Important vars: "prettierPattern", "prettierImage", "prettierVersion".'
     deps:
       - lint:prettier:yaml
 
   lint:prettier:yaml:
-    desc: "Check if yaml files are prettier-formatted."
+    desc: 'Check if yaml files are prettier-formatted. Important vars: "prettierPattern", "prettierImage", "prettierVersion".'
     cmds:
-      - docker run --rm -u "$(id -u):$(id -g)" -v $(pwd):/work tmknom/prettier:${PRETTIER_VERSION} --no-error-on-unmatched-pattern -c "**/*.yaml" "**/*.yml"
+      - task: _prettier:run
+        vars:
+          args: '--no-error-on-unmatched-pattern -c {{.prettierPattern | default "\"**/*.{yaml,yml}\""}}'
