@@ -2,6 +2,9 @@ version: "3"
 
 silent: true
 
+vars:
+  golangciLintBin: '{{.golangciLintBinDir | default "./bin"}}/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}}'
+
 tasks:
   format:
     desc: 'Run all code formatters. Important vars: "paths", "gciPrefix", "prettierPattern", "prettierImage", "prettierVersion".'
@@ -12,11 +15,17 @@ tasks:
 
   format:gci:
     desc: 'Format code with gci. Important vars: "paths", "gciPrefix".'
+    preconditions:
+      - sh: command -v gci >/dev/null 2>&1
+        msg: 'gci not installed, run: task deps:install:gci'
     cmds:
       - gci write -s Standard -s Default -s 'Prefix({{.gciPrefix | default "github.com/werf/"}})' --skip-generated {{.CLI_ARGS}} {{.paths | default "pkg/ cmd/ test/"}}
 
   format:gofumpt:
     desc: 'Format code with gofumpt. Important vars: "paths".'
+    preconditions:
+      - sh: command -v gofumpt >/dev/null 2>&1
+        msg: 'gofumpt not installed, run: task deps:install:gofumpt'
     cmds:
       - gofumpt -extra -w {{.CLI_ARGS}} {{.paths | default "cmd/ pkg/ test/"}}
 
@@ -27,6 +36,9 @@ tasks:
 
   _prettier:run:
     internal: true
+    preconditions:
+      - sh: command -v docker >/dev/null 2>&1
+        msg: 'docker not installed'
     cmds:
       - docker run --rm -u "$(id -u):$(id -g)" -v "$(pwd):/work" {{.prettierImage | default "tmknom/prettier"}}:{{.prettierVersion | default "3.5.3"}} {{.args}}
 
@@ -38,58 +50,32 @@ tasks:
           args: '-w --no-error-on-unmatched-pattern {{.prettierPattern | default "\"**/*.{yaml,yml}\""}}'
 
   lint:
-    desc: 'Run all linters in parallel. Important vars: "golangciPaths", "golangciConfig", "moduleDir", "prettierPattern", "prettierImage", "prettierVersion".'
+    desc: 'Run all linters in parallel. Important vars: "golangciPaths", "golangciConfig", "golangciConfigPath", "golangciLintBinDir", "golangciLintVersion", "prettierPattern", "prettierImage", "prettierVersion".'
     deps:
       - lint:golangci-lint
       - lint:prettier
 
   _lint:golangci-lint:run:
     internal: true
+    vars:
+      golangciConfigName: '{{.golangciConfig | default ".golangci_simple.yml"}}'
+      golangciConfigURL: 'https://raw.githubusercontent.com/werf/common-ci/refs/heads/main/{{.golangciConfigName}}'
+      golangciConfigSource: '{{.golangciConfigPath | default (printf "<(curl -sSfL %q)" .golangciConfigURL)}}'
+    preconditions:
+      - sh: test -f '{{.golangciLintBin}}'
+        msg: 'golangci-lint not installed, run: task deps:install:golangci-lint'
     cmds:
-      - |
-        bash <<'BASH'
-        project_root="$(pwd)"
-        module_dir="{{.moduleDir | default "."}}"
-        golangci_lint_bin_dir="{{.golangciLintBinDir | default "./bin"}}"
-        golangci_config="{{.golangciConfig | default "https://raw.githubusercontent.com/werf/common-ci/refs/heads/main/.golangci_simple.yml"}}"
-
-        if [ "${module_dir#/}" = "$module_dir" ]; then
-          module_dir="$project_root/$module_dir"
-        fi
-
-        if [ "${golangci_lint_bin_dir#/}" = "$golangci_lint_bin_dir" ]; then
-          golangci_lint_bin_dir="$project_root/$golangci_lint_bin_dir"
-        fi
-
-        golangci_lint_bin="$golangci_lint_bin_dir/golangci-lint-{{.golangciLintVersion | default "v1.62.0"}}"
-
-        cd "$module_dir"
-
-        if [ ! -f "$golangci_lint_bin" ]; then
-          echo "golangci-lint not installed, run: task deps:install:golangci-lint"
-          exit 1
-        fi
-
-        run_golangci_lint() {
-          "$golangci_lint_bin" run {{if .buildTags}}--build-tags="{{.buildTags}}" {{end}}-c "$1" {{.CLI_ARGS}} {{.golangciPaths | default "./..."}}
-        }
-
-        if [ "${golangci_config#https://}" != "$golangci_config" ]; then
-          run_golangci_lint <(curl -sSfL "$golangci_config")
-        else
-          if [ ! -f "$golangci_config" ]; then
-            echo "golangci-lint config not found: $golangci_config"
-            exit 1
-          fi
-
-          run_golangci_lint "$golangci_config"
-        fi
-        BASH
+      - >-
+        {{.golangciLintBin}} run
+        {{if .buildTags}}--build-tags="{{.buildTags}}" {{end}}
+        -c {{.golangciConfigSource}}
+        {{.CLI_ARGS}}
+        {{.golangciPaths | default "./..."}}
     env:
       CGO_ENABLED: '{{.cgoEnabled}}'
 
   lint:golangci-lint:cgo:
-    desc: 'Lint with golangci-lint for cgo. Important vars: "golangciPaths", "golangciLintVersion", "golangciConfig", "moduleDir".'
+    desc: 'Lint with golangci-lint for cgo. Important vars: "golangciPaths", "golangciLintVersion", "golangciLintBinDir", "golangciConfig", "golangciConfigPath".'
     cmds:
       - task: _lint:golangci-lint:run
         vars:
@@ -97,7 +83,7 @@ tasks:
           cgoEnabled: '1'
 
   lint:golangci-lint:go:
-    desc: 'Lint with golangci-lint without cgo. Important vars: "golangciPaths", "golangciLintVersion", "golangciConfig", "moduleDir".'
+    desc: 'Lint with golangci-lint without cgo. Important vars: "golangciPaths", "golangciLintVersion", "golangciLintBinDir", "golangciConfig", "golangciConfigPath".'
     cmds:
       - task: _lint:golangci-lint:run
         vars:
@@ -105,16 +91,13 @@ tasks:
           cgoEnabled: '0'
 
   _lint:golangci-lint:cgo-and-go:
+    internal: true
     cmds:
       - task: lint:golangci-lint:cgo
       - task: lint:golangci-lint:go
 
-  _lint:golangci-lint:go:
-    deps:
-      - task: lint:golangci-lint:go
-
   lint:golangci-lint:
-    desc: 'Lint with golangci-lint (with and without cgo). Important vars: "golangciPaths", "golangciConfig", "moduleDir".'
+    desc: 'Lint with golangci-lint (with and without cgo). Important vars: "golangciPaths", "golangciConfig", "golangciConfigPath", "golangciLintBinDir", "golangciLintVersion".'
     cmds:
       - task: '{{ternary "_lint:golangci-lint:cgo-and-go" "lint:golangci-lint:go" (eq .mode "cgo")}}'
 
