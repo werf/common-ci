@@ -3,74 +3,36 @@ name: Lint
 on:
   workflow_call:
     inputs:
-      force-skip:
-        default: "false"
+      path-to-go-mod:
         type: string
-      taskfile-dir:
-        description: "directory where taskfile is located"
+        default: "go.mod"
+      skipBtrfs:
         type: string
-        default: ${{ github.workspace }}
-      go-version-file-dir:
-        description: "directory where go.mod is located. Can be multiple dirs"
-        type: string
-        default: '["."]'
-      packages:
-        description: "packages to install"
-        type: string
-
-env:
-  DEBIAN_FRONTEND: "noninteractive"
+        default: "true"
 
 jobs:
-  prettier:
-    runs-on: ubuntu-latest
-    timeout-minutes: 7
+  _:
+    runs-on: ubuntu-22.04
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Install Btrfs
+      if: inputs.skipBtrfs == 'false'
+      run: sudo apt-get install -y libbtrfs-dev
 
-      - name: Install Task
-        uses: arduino/setup-task@v2
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Install prettier
-        run: task -p deps:install:prettier
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: ${{ inputs.path-to-go-mod }}
 
-      - name: Lint
-        run: task -p lint:prettier
+    - name: Install Task
+      uses: arduino/setup-task@v2
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-  golangci-lint:
-    timeout-minutes: 7
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        directory: ${{ fromJson(inputs.go-version-file-dir) }}
-    steps:
-      - name: Install build dependencies
-        if: inputs.packages && inputs.packages != ''
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ${{ inputs.packages }}
+    - name: Install golangci-lint
+      run: task -p deps:install:golangci-lint
 
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: ${{ matrix.directory }}/go.mod
-
-      - name: Install Task
-        uses: arduino/setup-task@v2
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install golangci-lint
-        run: task -p deps:install:golangci-lint
-
-      - name: Lint
-        working-directory: ${{ matrix.directory }}
-        run: task -p lint:golangci-lint
-        env:
-          GITHUB_WORKSPACE: ${{ github.workspace }}
+    - name: Lint
+      run: task -p lint
