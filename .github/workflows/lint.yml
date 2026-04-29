@@ -23,7 +23,7 @@ env:
 
 jobs:
   prettier:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 7
     steps:
       - name: Checkout code
@@ -42,7 +42,7 @@ jobs:
 
   golangci-lint:
     timeout-minutes: 7
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         directory: ${{ fromJson(inputs.go-version-file-dir) }}
