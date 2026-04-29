@@ -1,0 +1,94 @@
+name: release:create-release
+
+on:
+  workflow_call:
+    inputs:
+      binary_name: 
+        type: string
+        required: true
+        description: 'Binary name(s) separated by space'
+      tuf_repo:
+        type: string
+        required: true
+        description: 'Path to binary download in release notes'
+      pgp_key_urls:
+        type: string
+        required: true
+        description: 'PGP key URL(s) separated by space (one per binary in same order)'
+    secrets:
+      TOKEN:
+        required: true
+
+env:
+  GH_TOKEN: ${{ secrets.TOKEN }}
+
+jobs:
+  create-release:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      
+      - name: Get version from CHANGELOG.md
+        id: get_version
+        run: |
+          VERSION=$(grep -m1 '^#\+ \[[0-9]\+\.[0-9]\+\.[0-9]\+\]' CHANGELOG.md | sed -E 's/^#+ \[([0-9]+\.[0-9]+\.[0-9]+)\].*/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Generate notes.md
+        id: notes
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          BINARY_NAMES=(${{ inputs.binary_name }})
+          PGP_KEY_URLS=(${{ inputs.pgp_key_urls }})
+          TUF_REPOS=(${{ inputs.tuf_repo }})
+          
+          if [ ${#BINARY_NAMES[@]} -ne ${#PGP_KEY_URLS[@]} ] || [ ${#BINARY_NAMES[@]} -ne ${#TUF_REPOS[@]} ]; then
+            echo "Error: Number of binaries (${#BINARY_NAMES[@]}), PGP keys (${#PGP_KEY_URLS[@]}) and TUF repos (${#TUF_REPOS[@]}) must match"
+            exit 1
+          fi
+          
+          echo "## Changelog" > notes.md
+          awk -v version="$VERSION" '
+            $0 ~ "^#+ \\[" version "\\]" {capture=1; next}
+            capture && $0 ~ "^#+ \\[" && $0 !~ "^#+ \\[" version "\\]" {exit}
+            capture {print}
+          ' CHANGELOG.md >> notes.md
+
+          echo -e "\n## Installation" >> notes.md
+          for i in "${!BINARY_NAMES[@]}"; do
+            BINARY_NAME="${BINARY_NAMES[i]}"
+            PGP_URL="${PGP_KEY_URLS[i]}"
+            TUF_REPO="${TUF_REPOS[i]}"
+
+            if [[ "$BINARY_NAME" == "werf" ]]; then
+              echo -e "\nTo install \`werf\` we strongly recommend following [these instructions](https://werf.io/getting_started/).\n" >> notes.md
+            fi
+
+            cat <<EOF >> notes.md
+          You can download \`$BINARY_NAME\` binaries from here:
+          * [Linux amd64](https://$TUF_REPO/targets/releases/$VERSION/linux-amd64/bin/$BINARY_NAME) ([PGP signature](https://$TUF_REPO/targets/signatures/$VERSION/linux-amd64/bin/$BINARY_NAME.sig))
+          * [Linux arm64](https://$TUF_REPO/targets/releases/$VERSION/linux-arm64/bin/$BINARY_NAME) ([PGP signature](https://$TUF_REPO/targets/signatures/$VERSION/linux-arm64/bin/$BINARY_NAME.sig))
+          * [macOS amd64](https://$TUF_REPO/targets/releases/$VERSION/darwin-amd64/bin/$BINARY_NAME) ([PGP signature](https://$TUF_REPO/targets/signatures/$VERSION/darwin-amd64/bin/$BINARY_NAME.sig))
+          * [macOS arm64](https://$TUF_REPO/targets/releases/$VERSION/darwin-arm64/bin/$BINARY_NAME) ([PGP signature](https://$TUF_REPO/targets/signatures/$VERSION/darwin-arm64/bin/$BINARY_NAME.sig))
+          * [Windows amd64](https://$TUF_REPO/targets/releases/$VERSION/windows-amd64/bin/$BINARY_NAME.exe) ([PGP signature](https://$TUF_REPO/targets/signatures/$VERSION/windows-amd64/bin/$BINARY_NAME.exe.sig))
+
+          These binaries were signed with PGP and could be verified on Linux with these commands:
+          \`\`\`shell
+          curl -sSL $PGP_URL | gpg --import
+          curl -sSLO "https://$TUF_REPO/targets/releases/$VERSION/linux-amd64/bin/$BINARY_NAME"
+          curl -sSLO "https://$TUF_REPO/targets/signatures/$VERSION/linux-amd64/bin/$BINARY_NAME.sig"
+          gpg --verify $BINARY_NAME.sig $BINARY_NAME
+          \`\`\`
+          EOF
+          done
+      
+      - name: Create release
+        run: |
+          gh release create "v${{ steps.get_version.outputs.version }}" \
+            --title "v${{ steps.get_version.outputs.version }}" \
+            --prerelease \
+            --notes-file notes.md
