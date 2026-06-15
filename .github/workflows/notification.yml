@@ -81,16 +81,6 @@ jobs:
             Упавшие джобы:
             ${{ steps.failed_jobs.outputs.failed }}
 
-      - if: steps.workflow_conclusion.outputs.conclusion == 'success' && !startsWith(github.ref, 'refs/pull/') && github.event_name != 'workflow_dispatch'
-        name: Success notify
-        uses: mattermost/action-mattermost-notify@master
-        with:
-          MATTERMOST_WEBHOOK_URL: ${{ secrets.webhook }}
-          MATTERMOST_CHANNEL: ${{ secrets.notificationChannel }}
-          TEXT: |
-            Workflow успешно завершился :bender: 
-            [${{ github.workflow }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) ${{ github.ref_name }} :success:
-
       - if: steps.workflow_conclusion.outputs.conclusion == 'failure' && (startsWith(github.ref, 'refs/pull/') || github.event_name == 'workflow_dispatch')
         name: Failure notify for PRs
         uses: mattermost/action-mattermost-notify@master
