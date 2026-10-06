@@ -28,7 +28,7 @@ defaults:
 jobs:
   cleanup:
     name: cleanup
-    runs-on: ubuntu-latest-16-cores
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
